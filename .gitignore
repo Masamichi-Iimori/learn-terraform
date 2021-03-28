@@ -1,0 +1,19 @@
+# Terraform
+.terraform*
+.terraform/
+terraform.tfvars
+terraform.tfstate*
+terraform.*.tfvars
+terraform.tfstate.d
+
+# AWS
+awscli-bundle*
+
+# direnv
+.envrc
+
+# ssh key
+.keys
+*.key
+*.pub
+*.pem
