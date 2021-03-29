@@ -11,7 +11,7 @@ resource "aws_alb_target_group" "alb" {
   name        = "${var.name}-${terraform.workspace}-tg"
   port        = 80
   protocol    = "HTTP"
-  vpc_id      = var.vpc_id
+  vpc_id      = aws_vpc.default.id
   target_type = "ip"
 
   health_check {

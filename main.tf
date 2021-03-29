@@ -10,7 +10,7 @@ terraform {
     bucket  = "sample-project"                   // tfstateを保存するS3を指定
     key     = "sample-project.terraform.tfstate" // tfstate名
     region  = "ap-northeast-1"                   // ここではvariableで定義した変数が使えないため注意！
-    profile = "sample-profile"                   // s3にアクセスできるアカウントのawsプロファイルを指定
+    profile = "masamichi"                        // s3にアクセスできるアカウントのawsプロファイルを指定
   }
 }
 

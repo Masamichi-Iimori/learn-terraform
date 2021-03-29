@@ -1,6 +1,6 @@
 resource "aws_security_group" "alb" {
   name   = "${var.name}_alb"
-  vpc_id = var.vpc_id
+  vpc_id = aws_vpc.default.id
 
   # ingress = {
   #   from_port   = 80
@@ -26,7 +26,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "rails" {
   name   = "${var.name}_rails"
-  vpc_id = var.vpc_id
+  vpc_id = aws_vpc.default.id
 
   ingress = {
     from_port = 0
@@ -48,7 +48,7 @@ resource "aws_security_group" "rails" {
 
 resource "aws_security_group" "db" {
   name   = "${var.name}_db"
-  vpc_id = var.vpc_id
+  vpc_id = aws_vpc.default.id
 
   ingress = {
     from_port = 3306
