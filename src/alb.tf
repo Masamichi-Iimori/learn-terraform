@@ -30,13 +30,8 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "これは『HTTP』です"
-      status_code  = "200"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.green.arn
   }
 }
 
@@ -74,26 +69,62 @@ resource "aws_lb_listener" "redirect_http_to_https" {
   }
 }
 
-resource "aws_lb_target_group" "example" {
-  name                 = "example"
+# resource "aws_lb_target_group" "example" {
+#   name                 = "example"
+#   vpc_id               = aws_vpc.example.id
+#   target_type          = "ip"
+#   port                 = 80
+#   protocol             = "HTTP"
+#   deregistration_delay = 300
+
+#   health_check {
+#     path                = "/"
+#     healthy_threshold   = 5
+#     unhealthy_threshold = 2
+#     timeout             = 5
+#     interval            = 30
+#     matcher             = 200
+#     port                = "traffic-port"
+#     protocol            = "HTTP"
+#   }
+
+#   depends_on = [aws_lb.example]
+# }
+
+resource "aws_lb_target_group" "blue" {
+  name                 = "blue"
   vpc_id               = aws_vpc.example.id
   target_type          = "ip"
   port                 = 80
   protocol             = "HTTP"
   deregistration_delay = 300
-
   health_check {
-    path                = "/"
-    healthy_threshold   = 5
-    unhealthy_threshold = 2
-    timeout             = 5
-    interval            = 30
-    matcher             = 200
-    port                = "traffic-port"
     protocol            = "HTTP"
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 2
+    matcher             = 200
   }
+}
 
-  depends_on = [aws_lb.example]
+resource "aws_lb_target_group" "green" {
+  name                 = "green"
+  vpc_id               = aws_vpc.example.id
+  target_type          = "ip"
+  port                 = 80
+  protocol             = "HTTP"
+  deregistration_delay = 300
+  health_check {
+    protocol            = "HTTP"
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 2
+    matcher             = 200
+  }
 }
 
 resource "aws_lb_listener_rule" "example" {
@@ -102,7 +133,7 @@ resource "aws_lb_listener_rule" "example" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.example.arn
+    target_group_arn = aws_lb_target_group.green.arn
   }
 
   condition {

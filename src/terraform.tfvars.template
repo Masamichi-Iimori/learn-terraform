@@ -1,0 +1,15 @@
+# AWS Settings
+access_key = ""
+secret_key = ""
+region     = "ap-northeast-1"
+
+# Config Settings
+system_name = ""
+workspace   = "dev"
+
+# Cloudfront Settings
+cloudfront_alias_domain    = "cimops-dev.nexceed.in"
+cloudfront_certificate_arn = "arn:aws:acm:us-east-1:877350044589:certificate/85337572-aae9-42ae-99c1-06c77018c281"
+
+# Route53 Settings
+zone_id = ""

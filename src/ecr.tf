@@ -1,5 +1,6 @@
 resource "aws_ecr_repository" "example" {
-  name = "example"
+  name                 = "go/server"
+  image_tag_mutability = "MUTABLE"
 }
 
 resource "aws_ecr_lifecycle_policy" "example" {

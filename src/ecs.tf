@@ -2,15 +2,16 @@ resource "aws_ecs_cluster" "example" {
   name = "example"
 }
 
-// タスク定義はインスタンスでタスクはインスタンスのイメージ
+// タスク定義はクラスでタスクはインスタンスのイメージ
+// タスク定義の中でコンテナ定義をする
 resource "aws_ecs_task_definition" "example" {
-  family                   = "example"
+  family                   = "go-server"
   cpu                      = "256"
   memory                   = "512"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  container_definitions    = file("./container_definitions.json")
-  execution_role_arn       = module.ecs_task_execution_role.iam_role_arn
+  container_definitions    = file("./go_container_definitions.json")
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 }
 
 resource "aws_ecs_task_definition" "example_batch" {
@@ -30,10 +31,16 @@ resource "aws_ecs_service" "example" {
   desired_count                     = 2
   launch_type                       = "FARGATE"
   platform_version                  = "1.3.0"
-  health_check_grace_period_seconds = 60
+  health_check_grace_period_seconds = 7200
+
+
+  // blue/green デプロイのときはこれが必要
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
 
   network_configuration {
-    assign_public_ip = false
+    assign_public_ip = true
     security_groups  = [module.nginx_sg.security_group_id]
 
     subnets = [
@@ -43,8 +50,8 @@ resource "aws_ecs_service" "example" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.example.arn
-    container_name   = "example"
+    target_group_arn = aws_lb_target_group.green.arn
+    container_name   = "go-server"
     container_port   = 80
   }
 
@@ -53,6 +60,32 @@ resource "aws_ecs_service" "example" {
   }
 }
 
+######################
+# IAM Role
+######################
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name               = "myapp-iam-role-ecs"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
+}
+
+data "aws_iam_policy_document" "assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+######################
 
 data "aws_iam_policy" "ecs_task_execution_role_policy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"

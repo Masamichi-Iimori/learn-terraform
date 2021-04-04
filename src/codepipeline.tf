@@ -10,13 +10,22 @@ data "aws_iam_policy_document" "codepipeline" {
       "s3:GetBucketVersioning",
       "codebuild:BatchGetBuilds",
       "codebuild:StartBuild",
+      "codedeploy:CreateDeployment",
+      "codedeploy:GetApplication",
+      "codedeploy:GetApplicationRevision",
+      "codedeploy:GetDeployment",
+      "codedeploy:GetDeploymentConfig",
+      "codedeploy:RegisterApplicationRevision",
       "ecs:DescribeServices",
       "ecs:DescribeTaskDefinition",
       "ecs:DescribeTasks",
       "ecs:ListTasks",
       "ecs:RegisterTaskDefinition",
       "ecs:UpdateService",
+      "ecr:DescribeImages",
       "iam:PassRole",
+      "lambda:InvokeFunction",
+      "lambda:ListFunctions"
     ]
   }
 }
@@ -29,19 +38,17 @@ module "codepipeline_role" {
 }
 
 resource "aws_s3_bucket" "artifact" {
-  bucket = "artifact-pragmatic-terraform-on-aws"
-
-  lifecycle_rule {
-    enabled = true
-
-    expiration {
-      days = "180"
-    }
-  }
+  acl = "private"
 }
+
 resource "aws_codepipeline" "example" {
   name     = "example"
   role_arn = module.codepipeline_role.iam_role_arn
+
+  artifact_store {
+    location = aws_s3_bucket.artifact.id
+    type     = "S3"
+  }
 
   stage {
     name = "Source"
@@ -52,13 +59,15 @@ resource "aws_codepipeline" "example" {
       owner            = "ThirdParty"
       provider         = "GitHub"
       version          = 1
-      output_artifacts = ["Source"]
+      output_artifacts = ["source"]
 
       configuration = {
-        Owner                = "your-github-name"
-        Repo                 = "your-repository"
-        Branch               = "master"
+        Owner                = "Masamichi-Iimori"
+        Repo                 = "go-http-test"
+        Branch               = "main"
         PollForSourceChanges = false
+        // TODO: ssmで管理
+        OAuthToken = var.github_token
       }
     }
   }
@@ -72,8 +81,8 @@ resource "aws_codepipeline" "example" {
       owner            = "AWS"
       provider         = "CodeBuild"
       version          = 1
-      input_artifacts  = ["Source"]
-      output_artifacts = ["Build"]
+      input_artifacts  = ["source"]
+      output_artifacts = ["build"]
 
       configuration = {
         ProjectName = aws_codebuild_project.example.id
@@ -88,21 +97,21 @@ resource "aws_codepipeline" "example" {
       name            = "Deploy"
       category        = "Deploy"
       owner           = "AWS"
-      provider        = "ECS"
+      provider        = "CodeDeployToECS"
       version         = 1
-      input_artifacts = ["Build"]
+      input_artifacts = ["build", "source"]
 
       configuration = {
-        ClusterName = aws_ecs_cluster.example.name
-        ServiceName = aws_ecs_service.example.name
-        FileName    = "imagedefinitions.json"
+        ApplicationName                = aws_codedeploy_app.main.name
+        TaskDefinitionTemplateArtifact = "source"
+        TaskDefinitionTemplatePath     = "task_definition.json"
+        AppSpecTemplateArtifact        = "source"
+        AppSpecTemplatePath            = "appspec.yaml"
+        DeploymentGroupName            = aws_codedeploy_app.main.name
+        Image1ArtifactName             = "build"
+        Image1ContainerName            = "IMAGE1_NAME"
       }
     }
-  }
-
-  artifact_store {
-    location = aws_s3_bucket.artifact.id
-    type     = "S3"
   }
 }
 
@@ -120,24 +129,18 @@ resource "aws_codepipeline_webhook" "example" {
     json_path    = "$.ref"
     match_equals = "refs/heads/{Branch}"
   }
-
-
-  provider "github" {
-    organization = "Masamichi-Iimori"
-  }
-
-
-  resource "github_repository_webhook" "example" {
-    repository = "your-repository"
-    name       = "web"
-
-    configuration {
-      url          = aws_codepipeline_webhook.example.url
-      secret       = "VeryRandomStringMoreThan20Byte!"
-      content_type = "json"
-      insecure_ssl = false
-    }
-
-    events = ["push"]
-  }
 }
+
+resource "github_repository_webhook" "example" {
+  repository = "go-http-test"
+
+  configuration {
+    url          = aws_codepipeline_webhook.example.url
+    secret       = "VeryRandomStringMoreThan20Byte!"
+    content_type = "json"
+    insecure_ssl = false
+  }
+
+  events = ["push"]
+}
+
