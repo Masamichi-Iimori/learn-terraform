@@ -62,12 +62,11 @@ resource "aws_codepipeline" "example" {
       output_artifacts = ["source"]
 
       configuration = {
-        Owner                = "Masamichi-Iimori"
+        Owner                = "${local.github_organization}"
         Repo                 = "go-http-test"
         Branch               = "main"
         PollForSourceChanges = false
-        // TODO: ssmで管理
-        OAuthToken = var.github_token
+        OAuthToken           = "${local.github_token}"
       }
     }
   }

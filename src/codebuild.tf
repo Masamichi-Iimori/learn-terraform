@@ -32,6 +32,7 @@ data "aws_iam_policy_document" "codebuild" {
       "ecr:UploadLayerPart",
       "ecr:CompleteLayerUpload",
       "ecr:PutImage",
+      "secretsmanager:GetSecretValue"
     ]
   }
 }
